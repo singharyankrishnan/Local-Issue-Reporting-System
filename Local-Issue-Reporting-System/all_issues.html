@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}All Submitted Issues - Civic Issues{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="display-6 fw-bold">
+            <i class="fas fa-list me-2"></i>All Submitted Issues
+        </h1>
+        <div class="text-muted">
+            <small>Total: {{ total_issues }} issues</small>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning border-0 text-dark">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ pending_issues }}</h3>
+                    <p class="card-text">Pending</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info border-0">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ in_progress_issues }}</h3>
+                    <p class="card-text">In Progress</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success border-0">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ resolved_issues }}</h3>
+                    <p class="card-text">Resolved</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary border-0">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ total_issues }}</h3>
+                    <p class="card-text">Total Issues</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-dark border-secondary mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Filter Issues
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="status" class="form-label">Status</label>
+                    <select name="status" id="status" class="form-select bg-secondary border-dark text-light">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                        <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>Submitted</option>
+                        <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Resolved</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="category" class="form-label">Category</label>
+                    <select name="category" id="category" class="form-select bg-secondary border-dark text-light">
+                        <option value="all" {% if category_filter == 'all' %}selected{% endif %}>All Categories</option>
+                        <option value="roads" {% if category_filter == 'roads' %}selected{% endif %}>Roads & Infrastructure</option>
+                        <option value="potholes" {% if category_filter == 'potholes' %}selected{% endif %}>Potholes</option>
+                        <option value="cleanliness" {% if category_filter == 'cleanliness' %}selected{% endif %}>Cleanliness & Sanitation</option>
+                        <option value="street_lights" {% if category_filter == 'street_lights' %}selected{% endif %}>Street Lights</option>
+                        <option value="water_supply" {% if category_filter == 'water_supply' %}selected{% endif %}>Water Supply</option>
+                        <option value="drainage" {% if category_filter == 'drainage' %}selected{% endif %}>Drainage</option>
+                        <option value="waste_management" {% if category_filter == 'waste_management' %}selected{% endif %}>Waste Management</option>
+                        <option value="traffic" {% if category_filter == 'traffic' %}selected{% endif %}>Traffic Issues</option>
+                        <option value="other" {% if category_filter == 'other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="priority" class="form-label">Priority</label>
+                    <select name="priority" id="priority" class="form-select bg-secondary border-dark text-light">
+                        <option value="all" {% if priority_filter == 'all' %}selected{% endif %}>All Priorities</option>
+                        <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Low</option>
+                        <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>High</option>
+                        <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>Urgent</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-search me-1"></i>Apply Filters
+                    </button>
+                    <a href="{{ url_for('all_issues') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Issues List -->
+    <div class="card bg-dark border-secondary">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-clipboard-list me-2"></i>Issues List
+                {% if issues.total > 0 %}
+                    <small class="text-muted">({{ issues.total }} total, showing {{ issues.per_page * (issues.page - 1) + 1 }}-{{ issues.per_page * (issues.page - 1) + issues.items|length }})</small>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if issues.items %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for issue in issues.items %}
+                            <tr>
+                                <td>
+                                    <strong>#{{ issue.id }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ issue.category.replace('_', ' ').title() }}</span>
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 200px;" title="{{ issue.description }}">
+                                        {{ issue.description }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        {{ issue.location[:30] }}{% if issue.location|length > 30 %}...{% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if issue.status == 'submitted' %}
+                                        <span class="badge bg-warning text-dark">Submitted</span>
+                                    {% elif issue.status == 'in_progress' %}
+                                        <span class="badge bg-info">In Progress</span>
+                                    {% elif issue.status == 'resolved' %}
+                                        <span class="badge bg-success">Resolved</span>
+                                    {% elif issue.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if issue.priority == 'urgent' %}
+                                        <span class="badge bg-danger">Urgent</span>
+                                    {% elif issue.priority == 'high' %}
+                                        <span class="badge bg-warning text-dark">High</span>
+                                    {% elif issue.priority == 'medium' %}
+                                        <span class="badge bg-info">Medium</span>
+                                    {% elif issue.priority == 'low' %}
+                                        <span class="badge bg-secondary">Low</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ issue.created_at.strftime('%Y-%m-%d') }}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if current_user.is_authenticated %}
+                                        <a href="{{ url_for('issue_detail', issue_id=issue.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-info" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#issueModal{{ issue.id }}">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if issues.pages > 1 %}
+                <div class="card-footer bg-dark border-top border-secondary">
+                    <nav aria-label="Issues pagination">
+                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                            {% if issues.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link bg-secondary border-secondary text-light" href="{{ url_for('all_issues', page=issues.prev_num, status=status_filter, category=category_filter, priority=priority_filter) }}">
+                                        <i class="fas fa-chevron-left"></i> Previous
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in issues.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != issues.page %}
+                                        <li class="page-item">
+                                            <a class="page-link bg-secondary border-secondary text-light" href="{{ url_for('all_issues', page=page_num, status=status_filter, category=category_filter, priority=priority_filter) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link bg-primary border-primary">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link bg-secondary border-secondary">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if issues.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link bg-secondary border-secondary text-light" href="{{ url_for('all_issues', page=issues.next_num, status=status_filter, category=category_filter, priority=priority_filter) }}">
+                                        Next <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Issues Found</h5>
+                    <p class="text-muted">{% if status_filter != 'all' or category_filter != 'all' or priority_filter != 'all' %}Try adjusting your filters or{% endif %} check back later for new submissions.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Issue Detail Modals for Non-Admin Users -->
+{% if not current_user.is_authenticated %}
+    {% for issue in issues.items %}
+    <div class="modal fade" id="issueModal{{ issue.id }}" tabindex="-1" aria-labelledby="issueModalLabel{{ issue.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="issueModalLabel{{ issue.id }}">
+                        Issue #{{ issue.id }} - {{ issue.category.replace('_', ' ').title() }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Reporter:</strong></div>
+                        <div class="col-sm-9">{{ issue.name }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Location:</strong></div>
+                        <div class="col-sm-9">
+                            <i class="fas fa-map-marker-alt me-1 text-danger"></i>{{ issue.location }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Status:</strong></div>
+                        <div class="col-sm-9">
+                            {% if issue.status == 'submitted' %}
+                                <span class="badge bg-warning text-dark">Submitted</span>
+                            {% elif issue.status == 'in_progress' %}
+                                <span class="badge bg-info">In Progress</span>
+                            {% elif issue.status == 'resolved' %}
+                                <span class="badge bg-success">Resolved</span>
+                            {% elif issue.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Priority:</strong></div>
+                        <div class="col-sm-9">
+                            {% if issue.priority == 'urgent' %}
+                                <span class="badge bg-danger">Urgent</span>
+                            {% elif issue.priority == 'high' %}
+                                <span class="badge bg-warning text-dark">High</span>
+                            {% elif issue.priority == 'medium' %}
+                                <span class="badge bg-info">Medium</span>
+                            {% elif issue.priority == 'low' %}
+                                <span class="badge bg-secondary">Low</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Description:</strong></div>
+                        <div class="col-sm-9">{{ issue.description }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Submitted:</strong></div>
+                        <div class="col-sm-9">{{ issue.created_at.strftime('%B %d, %Y at %I:%M %p') }}</div>
+                    </div>
+                    {% if issue.photo_filename %}
+                    <div class="mb-3">
+                        <strong>Photo Evidence:</strong>
+                        <div class="mt-2">
+                            <img src="{{ url_for('uploaded_file', filename=issue.photo_filename) }}" 
+                                 class="img-fluid rounded" 
+                                 style="max-width: 100%; max-height: 300px;"
+                                 alt="Issue photo evidence">
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}

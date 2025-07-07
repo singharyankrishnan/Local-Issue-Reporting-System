@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Report Local Issue - Civic Issues{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold mb-3">Local Issue Reporting System</h1>
+            <p class="lead text-muted">
+                Report local issues like garbage, potholes, street lights etc. Your issue will be shared with local leaders and admins.
+            </p>
+        </div>
+
+        <div class="card bg-dark border-secondary">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('submit_issue') }}" enctype="multipart/form-data" novalidate>
+                    {{ form.hidden_tag() }}
+                    {{ form.latitude() }}
+                    {{ form.longitude() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.name.label(class="form-label fw-semibold") }}
+                            {{ form.name(class="form-control bg-secondary border-dark text-light", placeholder="Your Name") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.email.label(class="form-label fw-semibold") }}
+                            {{ form.email(class="form-control bg-secondary border-dark text-light", placeholder="Your Email") }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.category.label(class="form-label fw-semibold") }}
+                        {{ form.category(class="form-select bg-secondary border-dark text-light") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label fw-semibold") }}
+                        {{ form.description(class="form-control bg-secondary border-dark text-light", rows="5", placeholder="Describe the Issue") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.location.label(class="form-label fw-semibold") }}
+                        <div class="input-group">
+                            {{ form.location(class="form-control bg-secondary border-dark text-light", placeholder="Enter location or use GPS") }}
+                            <button type="button" class="btn btn-outline-info" id="getLocationBtn">
+                                <i class="fas fa-map-marker-alt"></i> Use GPS
+                            </button>
+                        </div>
+                        <div class="form-text text-muted">
+                            <small id="locationStatus">Click "Use GPS" to automatically detect your location</small>
+                        </div>
+                        {{ form.latitude() }}
+                        {{ form.longitude() }}
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form.photo.label(class="form-label fw-semibold") }}
+                        {{ form.photo(class="form-control bg-secondary border-dark text-light", accept="image/*") }}
+                        <div class="form-text text-muted">
+                            <small>Upload a photo of the issue (optional). Supported formats: JPG, PNG, GIF. Max size: 16MB.</small>
+                        </div>
+                        <div id="photoPreview" class="mt-3" style="display: none;">
+                            <img id="previewImage" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-success btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('admin_panel') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-cog me-2"></i>Go to Admin Panel
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('admin_login') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i>Admin Login
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 mb-2">
+                    <a href="{{ url_for('all_issues') }}" class="btn btn-outline-info">
+                        <i class="fas fa-list me-2"></i>View All Issues
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issue Categories Info -->
+        <div class="mt-5">
+            <h3 class="mb-3">Common Issue Categories</h3>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-secondary border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-road fa-2x text-warning mb-2"></i>
+                            <h5>Roads & Infrastructure</h5>
+                            <p class="small text-muted">Damaged roads, construction issues</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-secondary border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                            <h5>Potholes</h5>
+                            <p class="small text-muted">Road potholes and surface damage</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-secondary border-0 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-lightbulb fa-2x text-info mb-2"></i>
+                            <h5>Street Lights</h5>
+                            <p class="small text-muted">Non-functional street lighting</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initializeFormValidation();
+    initializeTooltips();
+    initializeAlerts();
+    initializeGeolocation();
+    initializePhotoPreview();
+});
+</script>
+{% endblock %}
