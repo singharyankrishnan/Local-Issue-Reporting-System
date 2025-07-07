@@ -44,10 +44,14 @@ def load_user(user_id):
     from models import Admin
     return Admin.query.get(int(user_id))
 
+
+# Import models and routes after app and db are ready
+
+# Import models and routes after app and db are ready, but avoid circular import at startup
 with app.app_context():
-    # Import models to ensure tables are created
     import models
     db.create_all()
-
-# Import routes after app initialization
 import routes
+
+if __name__ == "__main__":
+    app.run(debug=True)

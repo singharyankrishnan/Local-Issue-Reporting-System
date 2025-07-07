@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - Civic Issues{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="display-6 fw-bold">
+        <i class="fas fa-chart-line me-2"></i>Analytics Dashboard
+    </h1>
+    <div class="btn-group">
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-outline-light">
+            <i class="fas fa-cog me-2"></i>Admin Panel
+        </a>
+        <button class="btn btn-outline-info" onclick="refreshData()">
+            <i class="fas fa-sync-alt me-2"></i>Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Performance Overview Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary border-0">
+            <div class="card-body text-center">
+                <h3 class="card-title">{{ analytics.performance.total_issues }}</h3>
+                <p class="card-text">Total Issues</p>
+                <small class="text-light opacity-75">All time</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success border-0">
+            <div class="card-body text-center">
+                <h3 class="card-title">{{ analytics.performance.resolution_rate }}%</h3>
+                <p class="card-text">Resolution Rate</p>
+                <small class="text-light opacity-75">{{ analytics.performance.resolved_count }} resolved</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info border-0">
+            <div class="card-body text-center">
+                <h3 class="card-title">{{ analytics.performance.avg_resolution_time }}</h3>
+                <p class="card-text">Avg. Resolution Days</p>
+                <small class="text-light opacity-75">From submission to resolution</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning border-0 text-dark">
+            <div class="card-body text-center">
+                <h3 class="card-title">{{ analytics.performance.notification_rate }}%</h3>
+                <p class="card-text">Notification Rate</p>
+                <small class="opacity-75">Authorities notified</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <!-- Status Distribution -->
+    <div class="col-lg-6 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks me-2"></i>Issues by Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Distribution -->
+    <div class="col-lg-6 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-layer-group me-2"></i>Issues by Category
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Priority Analysis and Monthly Trends -->
+<div class="row mb-4">
+    <!-- Priority Distribution -->
+    <div class="col-lg-4 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Priority Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="priorityChart" width="300" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Trends -->
+    <div class="col-lg-8 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-area me-2"></i>Monthly Trends
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="trendsChart" width="600" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Geographic Distribution Map -->
+{% if analytics.geo_stats %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-map-marked-alt me-2"></i>Geographic Distribution
+                </h5>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-light" onclick="filterMap('all')">All</button>
+                    <button class="btn btn-outline-warning" onclick="filterMap('submitted')">Pending</button>
+                    <button class="btn btn-outline-info" onclick="filterMap('in_progress')">In Progress</button>
+                    <button class="btn btn-outline-success" onclick="filterMap('resolved')">Resolved</button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="issuesMap" style="height: 400px; background-color: #2d2d2d;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Detailed Statistics Tables -->
+<div class="row mb-4">
+    <!-- Category Breakdown -->
+    <div class="col-lg-6 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Category Breakdown
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category, count in analytics.category_stats.items() %}
+                            <tr>
+                                <td>{{ category.replace('_', ' ').title() }}</td>
+                                <td>{{ count }}</td>
+                                <td>{{ "%.1f"|format((count / analytics.performance.total_issues * 100) if analytics.performance.total_issues > 0 else 0) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Breakdown -->
+    <div class="col-lg-6 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clipboard-check me-2"></i>Status Breakdown
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for status, count in analytics.status_stats.items() %}
+                            <tr>
+                                <td>
+                                    {% if status == 'submitted' %}
+                                        <span class="badge bg-warning text-dark">{{ status.title() }}</span>
+                                    {% elif status == 'in_progress' %}
+                                        <span class="badge bg-info">{{ status.replace('_', ' ').title() }}</span>
+                                    {% elif status == 'resolved' %}
+                                        <span class="badge bg-success">{{ status.title() }}</span>
+                                    {% elif status == 'rejected' %}
+                                        <span class="badge bg-danger">{{ status.title() }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ count }}</td>
+                                <td>{{ "%.1f"|format((count / analytics.performance.total_issues * 100) if analytics.performance.total_issues > 0 else 0) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Leaflet for maps -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// Analytics data from backend
+const analyticsData = {{ analytics | tojson }};
+
+// Chart configurations
+Chart.defaults.color = '#ffffff';
+Chart.defaults.borderColor = '#404040';
+
+// Status Chart
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: Object.keys(analyticsData.status_stats).map(status => status.replace('_', ' ').toUpperCase()),
+        datasets: [{
+            data: Object.values(analyticsData.status_stats),
+            backgroundColor: ['#ffc107', '#17a2b8', '#28a745', '#dc3545'],
+            borderWidth: 2,
+            borderColor: '#1a1a1a'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Category Chart
+const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+new Chart(categoryCtx, {
+    type: 'bar',
+    data: {
+        labels: Object.keys(analyticsData.category_stats).map(cat => cat.replace('_', ' ').toUpperCase()),
+        datasets: [{
+            label: 'Issues',
+            data: Object.values(analyticsData.category_stats),
+            backgroundColor: '#007bff',
+            borderColor: '#0056b3',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Priority Chart
+const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+new Chart(priorityCtx, {
+    type: 'pie',
+    data: {
+        labels: Object.keys(analyticsData.priority_stats).map(p => p.toUpperCase()),
+        datasets: [{
+            data: Object.values(analyticsData.priority_stats),
+            backgroundColor: ['#6c757d', '#007bff', '#ffc107', '#dc3545'],
+            borderWidth: 2,
+            borderColor: '#1a1a1a'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Monthly Trends Chart
+const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+new Chart(trendsCtx, {
+    type: 'line',
+    data: {
+        labels: analyticsData.monthly_stats.map(item => `${item.year}-${item.month.toString().padStart(2, '0')}`),
+        datasets: [{
+            label: 'Issues Reported',
+            data: analyticsData.monthly_stats.map(item => item.count),
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            fill: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Initialize map if geolocation data exists
+{% if analytics.geo_stats %}
+let issuesMap;
+let markersLayer;
+
+function initializeMap() {
+    // Initialize map centered on first issue or default location
+    const firstIssue = analyticsData.geo_stats[0];
+    const centerLat = firstIssue ? firstIssue.lat : 40.7128;
+    const centerLng = firstIssue ? firstIssue.lng : -74.0060;
+    
+    issuesMap = L.map('issuesMap').setView([centerLat, centerLng], 12);
+    
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(issuesMap);
+    
+    // Create markers layer
+    markersLayer = L.layerGroup().addTo(issuesMap);
+    
+    // Add all markers
+    updateMapMarkers('all');
+}
+
+function updateMapMarkers(filter) {
+    markersLayer.clearLayers();
+    
+    analyticsData.geo_stats.forEach(issue => {
+        if (filter === 'all' || issue.status === filter) {
+            const color = getMarkerColor(issue.status);
+            const icon = getMarkerIcon(issue.priority);
+            
+            const marker = L.circleMarker([issue.lat, issue.lng], {
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.7,
+                radius: getPriorityRadius(issue.priority)
+            }).addTo(markersLayer);
+            
+            // Popup with issue details
+            marker.bindPopup(`
+                <div class="text-dark">
+                    <strong>Issue #${issue.id}</strong><br>
+                    <strong>Category:</strong> ${issue.category.replace('_', ' ')}<br>
+                    <strong>Status:</strong> ${issue.status}<br>
+                    <strong>Priority:</strong> ${issue.priority}<br>
+                    <a href="/issue/${issue.id}" target="_blank">View Details</a>
+                </div>
+            `);
+        }
+    });
+}
+
+function getMarkerColor(status) {
+    switch(status) {
+        case 'submitted': return '#ffc107';
+        case 'in_progress': return '#17a2b8';
+        case 'resolved': return '#28a745';
+        case 'rejected': return '#dc3545';
+        default: return '#6c757d';
+    }
+}
+
+function getPriorityRadius(priority) {
+    switch(priority) {
+        case 'urgent': return 12;
+        case 'high': return 10;
+        case 'medium': return 8;
+        case 'low': return 6;
+        default: return 8;
+    }
+}
+
+function filterMap(status) {
+    updateMapMarkers(status);
+}
+
+// Initialize map when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initializeMap, 100);
+});
+{% endif %}
+
+function refreshData() {
+    location.reload();
+}
+</script>
+{% endblock %}

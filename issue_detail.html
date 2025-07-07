@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Issue #{{ issue.id }} - Civic Issues{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Issue Details -->
+        <div class="card bg-dark border-secondary mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-alt me-2"></i>Issue #{{ issue.id }}
+                </h5>
+                <div>
+                    {% if issue.status == 'submitted' %}
+                        <span class="badge bg-warning text-dark">Submitted</span>
+                    {% elif issue.status == 'in_progress' %}
+                        <span class="badge bg-info">In Progress</span>
+                    {% elif issue.status == 'resolved' %}
+                        <span class="badge bg-success">Resolved</span>
+                    {% elif issue.status == 'rejected' %}
+                        <span class="badge bg-danger">Rejected</span>
+                    {% endif %}
+                    
+                    {% if issue.priority == 'low' %}
+                        <span class="badge bg-secondary">Low Priority</span>
+                    {% elif issue.priority == 'medium' %}
+                        <span class="badge bg-primary">Medium Priority</span>
+                    {% elif issue.priority == 'high' %}
+                        <span class="badge bg-warning text-dark">High Priority</span>
+                    {% elif issue.priority == 'urgent' %}
+                        <span class="badge bg-danger">Urgent</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Category:</strong></div>
+                    <div class="col-sm-9">
+                        <span class="badge bg-secondary">{{ issue.category.replace('_', ' ').title() }}</span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Reporter:</strong></div>
+                    <div class="col-sm-9">{{ issue.name }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Email:</strong></div>
+                    <div class="col-sm-9">
+                        <a href="mailto:{{ issue.email }}" class="text-decoration-none">{{ issue.email }}</a>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Location:</strong></div>
+                    <div class="col-sm-9">
+                        <i class="fas fa-map-marker-alt me-1 text-danger"></i>{{ issue.location }}
+                        {% if issue.latitude and issue.longitude %}
+                            <br><small class="text-muted">
+                                Coordinates: {{ "%.6f"|format(issue.latitude) }}, {{ "%.6f"|format(issue.longitude) }}
+                                <a href="https://www.google.com/maps?q={{ issue.latitude }},{{ issue.longitude }}" target="_blank" class="ms-2">
+                                    <i class="fas fa-external-link-alt"></i> View on Map
+                                </a>
+                            </small>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Reported:</strong></div>
+                    <div class="col-sm-9">{{ issue.created_at.strftime('%B %d, %Y at %I:%M %p') }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Last Updated:</strong></div>
+                    <div class="col-sm-9">{{ issue.updated_at.strftime('%B %d, %Y at %I:%M %p') }}</div>
+                </div>
+                {% if issue.assigned_to %}
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Assigned To:</strong></div>
+                    <div class="col-sm-9">{{ issue.assigned_to }}</div>
+                </div>
+                {% endif %}
+                
+                <hr class="border-secondary">
+                
+                <div class="mb-3">
+                    <strong>Issue Description:</strong>
+                    <div class="mt-2 p-3 bg-secondary rounded">
+                        {{ issue.description }}
+                    </div>
+                </div>
+                
+                {% if issue.photo_filename %}
+                <div class="mb-3">
+                    <strong>Photo Evidence:</strong>
+                    <div class="mt-2">
+                        <img src="{{ url_for('uploaded_file', filename=issue.photo_filename) }}" 
+                             class="img-fluid rounded" 
+                             style="max-width: 100%; max-height: 400px;"
+                             alt="Issue photo evidence">
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if issue.admin_notes %}
+                <div class="mb-3">
+                    <strong>Admin Notes:</strong>
+                    <div class="mt-2 p-3 bg-info bg-opacity-25 rounded">
+                        {{ issue.admin_notes }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Update Issue Form -->
+        <div class="card bg-dark border-secondary mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-edit me-2"></i>Update Issue
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_issue', issue_id=issue.id) }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.status.label(class="form-label fw-semibold") }}
+                        {{ form.status(class="form-select bg-secondary border-dark text-light") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.priority.label(class="form-label fw-semibold") }}
+                        {{ form.priority(class="form-select bg-secondary border-dark text-light") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.assigned_to.label(class="form-label fw-semibold") }}
+                        {{ form.assigned_to(class="form-control bg-secondary border-dark text-light", placeholder="Enter name or department") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.admin_notes.label(class="form-label fw-semibold") }}
+                        {{ form.admin_notes(class="form-control bg-secondary border-dark text-light", rows="4", placeholder="Add admin notes or updates...") }}
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Issue Actions -->
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tools me-2"></i>Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('admin_panel') }}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Admin Panel
+                    </a>
+                    <a href="{{ url_for('all_issues') }}" class="btn btn-outline-info">
+                        <i class="fas fa-list me-2"></i>All Issues
+                    </a>
+                    <a href="mailto:{{ issue.email }}?subject=Re: Issue #{{ issue.id }} - {{ issue.category.replace('_', ' ').title() }}" class="btn btn-outline-success">
+                        <i class="fas fa-envelope me-2"></i>Email Reporter
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Issues List
+    </a>
+</div>
+{% endblock %}
